@@ -7,6 +7,7 @@ use std::ptr::{null_mut, NonNull};
 
 use rusb::{DeviceHandle, UsbContext};
 
+use array_iterator::ArrayIterator;
 use dir::{DirItem, DirList};
 pub use error::*;
 use info::Info;
@@ -15,24 +16,39 @@ use libnspire_sys::{
     nspire_file_copy, nspire_file_delete, nspire_file_move, nspire_file_read, nspire_file_write,
     nspire_free, nspire_handle, nspire_image, nspire_init, nspire_os_send, nspire_screenshot,
 };
+use std::convert::TryFrom;
 
 pub mod dir;
 mod error;
 pub mod info;
 
+/// The USB vendor ID used by all Nspire calculators.
+pub const VID: u16 = 0x0451;
+/// The USB vendor ID used by all non-CX and original CX calculators.
+pub const PID: u16 = 0xe012;
+/// The USB vendor ID used by all CX II calculators.
+pub const PID_CX2: u16 = 0xe022;
+
+/// A handle to a calculator.
 pub struct Handle<T: UsbContext> {
     handle: NonNull<nspire_handle>,
-    _device: DeviceHandle<T>,
+    device: DeviceHandle<T>,
 }
 
 impl<T: UsbContext> Handle<T> {
+    /// Create a new handle to a USB device.
     pub fn new(device: DeviceHandle<T>) -> Result<Self> {
         let mut handle: *mut nspire_handle = null_mut();
         err(unsafe { nspire_init(&mut handle, device.as_raw() as _) })?;
         Ok(Handle {
             handle: NonNull::new(handle).ok_or(Error::NoDevice)?,
-            _device: device,
+            device,
         })
+    }
+
+    /// Whether this device is a CX II, CAS or non-CAS.
+    pub fn is_cx_ii(&self) -> Result<bool> {
+        Ok(self.device.device().device_descriptor()?.product_id() == PID_CX2)
     }
 
     pub fn info(&self) -> Result<Info> {
@@ -43,6 +59,7 @@ impl<T: UsbContext> Handle<T> {
         }
     }
 
+    /// Take a screenshot.
     pub fn screenshot(&self) -> Result<Image> {
         unsafe {
             let mut image: *mut nspire_image = null_mut();
@@ -56,12 +73,13 @@ impl<T: UsbContext> Handle<T> {
             Ok(Image {
                 width,
                 height,
-                bbp,
+                bpp: bbp,
                 data,
             })
         }
     }
 
+    /// Move/rename a file.
     pub fn move_file(&self, src: &str, dest: &str) -> Result<()> {
         let src = CString::new(src)?;
         let dest = CString::new(dest)?;
@@ -74,6 +92,7 @@ impl<T: UsbContext> Handle<T> {
         }
     }
 
+    /// Get the attributes of a file or directory.
     pub fn file_attr(&self, src: &str) -> Result<DirItem> {
         let src = CString::new(src)?;
         unsafe {
@@ -83,6 +102,7 @@ impl<T: UsbContext> Handle<T> {
         }
     }
 
+    /// Copy a file.
     pub fn copy_file(&self, src: &str, dest: &str) -> Result<()> {
         let src = CString::new(src)?;
         let dest = CString::new(dest)?;
@@ -95,11 +115,15 @@ impl<T: UsbContext> Handle<T> {
         }
     }
 
+    /// Delete a file.
     pub fn delete_file(&self, path: &str) -> Result<()> {
         let path = CString::new(path)?;
         unsafe { err(nspire_file_delete(self.handle.as_ptr(), path.as_ptr())) }
     }
 
+    /// Read a file. Returns the number of bytes read. You must pass a buffer
+    /// large enough to read the entire file (or smaller if that's all you care
+    /// about).
     pub fn read_file(&self, path: &str, buf: &mut [u8]) -> Result<usize> {
         let path = CString::new(path)?;
         let mut bytes = 0;
@@ -115,6 +139,7 @@ impl<T: UsbContext> Handle<T> {
         Ok(bytes as usize)
     }
 
+    /// Write a file.
     pub fn write_file(&self, path: &str, buf: &[u8]) -> Result<()> {
         let path = CString::new(path)?;
         unsafe {
@@ -127,6 +152,7 @@ impl<T: UsbContext> Handle<T> {
         }
     }
 
+    /// Send an OS update.
     pub fn send_os(&self, buf: &[u8]) -> Result<()> {
         unsafe {
             err(nspire_os_send(
@@ -137,16 +163,19 @@ impl<T: UsbContext> Handle<T> {
         }
     }
 
+    /// Create a directory.
     pub fn create_dir(&self, path: &str) -> Result<()> {
         let path = CString::new(path)?;
         unsafe { err(nspire_dir_create(self.handle.as_ptr(), path.as_ptr())) }
     }
 
+    /// Delete a directory.
     pub fn delete_dir(&self, path: &str) -> Result<()> {
         let path = CString::new(path)?;
         unsafe { err(nspire_dir_create(self.handle.as_ptr(), path.as_ptr())) }
     }
 
+    /// Get the contents of a directory.
     pub fn list_dir(&self, path: &str) -> Result<DirList> {
         let path = CString::new(path)?;
         unsafe {
@@ -161,17 +190,68 @@ impl<T: UsbContext> Handle<T> {
     }
 }
 
+impl<T: UsbContext> TryFrom<DeviceHandle<T>> for Handle<T> {
+    type Error = Error;
+
+    fn try_from(device: DeviceHandle<T>) -> Result<Self> {
+        Handle::new(device)
+    }
+}
+
 impl<T: UsbContext> Drop for Handle<T> {
     fn drop(&mut self) {
         unsafe { nspire_free(self.handle.as_ptr()) }
     }
 }
 
+/// An image from a screenshot.
 pub struct Image {
     pub width: u16,
     pub height: u16,
-    pub bbp: u8,
+    /// The number of bits per pixel. Either 8 for non-color calculators or 16
+    /// for color calculators.
+    pub bpp: u8,
     pub data: Vec<u8>,
+}
+const MAX_R: u8 = ((1usize << 5) - 1) as u8;
+const MAX_G: u8 = ((1usize << 6) - 1) as u8;
+const MAX_B: u8 = ((1usize << 5) - 1) as u8;
+/// Convert color channel values from one bit depth to another.
+const fn convert_channel(value: u8, from_max: u8) -> u8 {
+    ((value as u16 * 255u16 + from_max as u16 / 2) / from_max as u16) as u8
+}
+
+impl TryFrom<Image> for image::DynamicImage {
+    type Error = Error;
+
+    /// Currently broken.
+    fn try_from(image: Image) -> Result<Self> {
+        use image::ImageBuffer;
+        match image.bpp {
+            8 => Ok(image::DynamicImage::ImageLuma8(
+                ImageBuffer::from_vec(image.width as u32, image.height as u32, image.data).unwrap(),
+            )),
+            16 => {
+                let data: Vec<u8> = image
+                    .data
+                    .chunks(2)
+                    .flat_map(|d| {
+                        let color = u16::from_ne_bytes([d[0], d[1]]);
+                        ArrayIterator::new([
+                            convert_channel(color as u8 & MAX_R, MAX_R),
+                            convert_channel((color >> 5) as u8 & MAX_G, MAX_G),
+                            convert_channel((color >> 11) as u8 & MAX_B, MAX_B),
+                        ])
+                    })
+                    .collect();
+                dbg!(data.len());
+                Ok(image::DynamicImage::ImageRgb8(
+                    ImageBuffer::from_vec(image.width as u32, image.height as u32, data).unwrap(),
+                ))
+            }
+            other => Err(Error::UnknownBpp(other)),
+        }
+    }
 }
 
 unsafe fn c_str(s: &[c_char]) -> String {

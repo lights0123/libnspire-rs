@@ -1,3 +1,5 @@
+//! Information about the calculator
+
 use libnspire_sys::{
     nspire_battery, nspire_devinfo, nspire_devinfo__bindgen_ty_3, nspire_devinfo__bindgen_ty_5,
     nspire_runlevel, nspire_type,
@@ -11,6 +13,22 @@ pub enum HardwareType {
     CasCx,
     NonCasCx,
     Unknown(u8),
+}
+
+impl HardwareType {
+    /// Whether this model is a CAS model. This is the physical model, not the
+    /// software model: if CAS software has been installed on a non-CAS device,
+    /// this will still return `false`. Use the [name][crate::info::Info::name]
+    /// field and search for "CAS" instead.
+    pub fn is_cas(&self) -> bool {
+        matches!(self, HardwareType::Cas | HardwareType::CasCx)
+    }
+    /// Whether this model is a CX or CX II model. Use
+    /// [`Handle::is_cx_ii`][crate::Handle::is_cx_ii] to determine if the
+    /// device is a CX II or not.
+    pub fn is_cx(&self) -> bool {
+        matches!(self, HardwareType::CasCx | HardwareType::NonCasCx)
+    }
 }
 
 impl From<nspire_type> for HardwareType {
@@ -50,9 +68,12 @@ impl From<nspire_battery> for Battery {
     }
 }
 
+/// The current state of the calculator.
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub enum RunLevel {
+    /// The calculator is in recovery mode.
     Recovery,
+    /// The calculator is in the standard operating system.
     Os,
     Unknown(u8),
 }
@@ -97,7 +118,11 @@ impl From<nspire_devinfo__bindgen_ty_3> for Version {
 
 impl fmt::Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}.{}.{}.{}", self.major, self.minor, self.patch, self.build)
+        write!(
+            f,
+            "{}.{}.{}.{}",
+            self.major, self.minor, self.patch, self.build
+        )
     }
 }
 
@@ -105,7 +130,9 @@ impl fmt::Display for Version {
 pub struct Lcd {
     pub width: u16,
     pub height: u16,
-    pub bbp: u8,
+    /// The number of bits per pixel. Either 8 for non-color calculators or 16
+    /// for color calculators.
+    pub bpp: u8,
     pub sample_mode: u8,
 }
 
@@ -121,7 +148,7 @@ impl From<nspire_devinfo__bindgen_ty_5> for Lcd {
         Lcd {
             width,
             height,
-            bbp,
+            bpp: bbp,
             sample_mode,
         }
     }
@@ -133,16 +160,23 @@ pub struct Info {
     pub total_storage: u64,
     pub free_ram: u64,
     pub total_ram: u64,
+    /// The operating system version.
     pub version: Version,
     pub boot1_version: Version,
     pub boot2_version: Version,
     pub hw_type: HardwareType,
     pub clock_speed: u8,
     pub lcd: Lcd,
+    /// The accepted file extension for OS upgrades.
     pub os_extension: String,
+    /// The accepted file extension for files.
     pub file_extension: String,
+    /// The name of the calculator.
     pub name: String,
+    /// The ID ("serial number") of the calculator.
     pub id: String,
+    /// Whether the calculator is in maintenance mode or the standard operating
+    /// system.
     pub run_level: RunLevel,
     pub battery: Battery,
     pub is_charging: bool,
