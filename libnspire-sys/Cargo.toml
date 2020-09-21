@@ -7,6 +7,8 @@ edition = "2018"
 build = "build.rs"
 links = "nspire"
 license = "GPL-3.0"
+readme = "README.md"
+repository = "https://github.com/lights0123/libnspire-rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
