@@ -1,0 +1,2 @@
+[workspace]
+members = ["libnspire-sys", "libnspire"]

@@ -1,0 +1,15 @@
+[package]
+name = "libnspire"
+description = "high-level bindings to libnspire for USB interaction with TI Nspire calculators"
+version = "0.1.0"
+authors = ["lights0123 <developer@lights0123.com>"]
+edition = "2018"
+license = "GPL-3.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+libnspire-sys = "0.1.0"
+rusb = "0.6.4"
+thiserror = "1.0.20"
+displaydoc = "0.1"
