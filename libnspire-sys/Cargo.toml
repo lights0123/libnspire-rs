@@ -18,4 +18,4 @@ libusb1-sys = "0.4.1"
 [build-dependencies]
 cc = { version = "1.0", features = ["parallel"] }
 globwalk = "0.7"
-bindgen = "0.55.1"
+# bindgen = "0.55.1"
