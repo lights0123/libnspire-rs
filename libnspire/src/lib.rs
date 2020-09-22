@@ -190,6 +190,9 @@ impl<T: UsbContext> Handle<T> {
     }
 }
 
+unsafe impl<T: UsbContext> Send for Handle<T> {}
+unsafe impl<T: UsbContext> Sync for Handle<T> {}
+
 impl<T: UsbContext> TryFrom<DeviceHandle<T>> for Handle<T> {
     type Error = Error;
 
