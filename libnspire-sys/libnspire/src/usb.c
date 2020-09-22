@@ -84,7 +84,6 @@ int usb_get_device(usb_device_t *handle, libusb_device_handle *dev) {
 error_free_desc:
 	libusb_free_config_descriptor(config);
 error_close:
-	libusb_close(dev);
 error:
 	return -NSPIRE_ERR_NODEVICE;
 }
