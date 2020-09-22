@@ -4,9 +4,12 @@ use libnspire_sys::{
     nspire_battery, nspire_devinfo, nspire_devinfo__bindgen_ty_3, nspire_devinfo__bindgen_ty_5,
     nspire_runlevel, nspire_type,
 };
+#[cfg(feature = "serde")]
+use serde::Serialize;
 use std::fmt;
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum HardwareType {
     Cas,
     NonCas,
@@ -47,6 +50,7 @@ impl From<nspire_type> for HardwareType {
 }
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Battery {
     Powered,
     Low,
@@ -70,6 +74,7 @@ impl From<nspire_battery> for Battery {
 
 /// The current state of the calculator.
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum RunLevel {
     /// The calculator is in recovery mode.
     Recovery,
@@ -92,6 +97,7 @@ impl From<nspire_runlevel> for RunLevel {
 }
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct Version {
     pub major: u8,
     pub minor: u8,
@@ -127,6 +133,7 @@ impl fmt::Display for Version {
 }
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct Lcd {
     pub width: u16,
     pub height: u16,
@@ -155,6 +162,7 @@ impl From<nspire_devinfo__bindgen_ty_5> for Lcd {
 }
 
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct Info {
     pub free_storage: u64,
     pub total_storage: u64,

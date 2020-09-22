@@ -224,6 +224,7 @@ const fn convert_channel(value: u8, from_max: u8) -> u8 {
     ((value as u16 * 255u16 + from_max as u16 / 2) / from_max as u16) as u8
 }
 
+#[cfg(feature = "image")]
 impl TryFrom<Image> for image::DynamicImage {
     type Error = Error;
 
