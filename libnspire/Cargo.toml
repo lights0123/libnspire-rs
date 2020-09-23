@@ -1,7 +1,7 @@
 [package]
 name = "libnspire"
 description = "high-level bindings to libnspire for USB interaction with TI Nspire calculators"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["lights0123 <developer@lights0123.com>"]
 edition = "2018"
 license = "GPL-3.0"

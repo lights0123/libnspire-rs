@@ -2,22 +2,23 @@
 
 use std::ffi::{CStr, CString};
 use std::mem;
-use std::os::raw::{c_char, c_void};
+use std::os::raw::c_char;
 use std::ptr::{null_mut, NonNull};
 
 use rusb::{DeviceHandle, UsbContext};
 
+use crate::callback::CallbackData;
 use array_iterator::ArrayIterator;
 use dir::{DirItem, DirList};
 pub use error::*;
 use info::Info;
 use libnspire_sys::{
-    free, nspire_attr, nspire_device_info, nspire_devinfo, nspire_dir_create, nspire_dirlist,
-    nspire_file_copy, nspire_file_delete, nspire_file_move, nspire_file_read, nspire_file_write,
-    nspire_free, nspire_handle, nspire_image, nspire_init, nspire_os_send, nspire_screenshot,
+    free, nspire_attr, nspire_device_info, nspire_devinfo, nspire_dir_create, nspire_dir_delete,
+    nspire_dirlist, nspire_file_copy, nspire_file_delete, nspire_file_move, nspire_file_read,
+    nspire_file_write, nspire_free, nspire_handle, nspire_image, nspire_init, nspire_os_send,
+    nspire_screenshot,
 };
 use std::convert::TryFrom;
-use crate::callback::CallbackData;
 
 mod callback;
 pub mod dir;
@@ -36,7 +37,6 @@ pub struct Handle<T: UsbContext> {
     handle: NonNull<nspire_handle>,
     device: DeviceHandle<T>,
 }
-
 
 impl<T: UsbContext> Handle<T> {
     /// Create a new handle to a USB device.
@@ -127,7 +127,12 @@ impl<T: UsbContext> Handle<T> {
     /// Read a file. Returns the number of bytes read. You must pass a buffer
     /// large enough to read the entire file (or smaller if that's all you care
     /// about).
-    pub fn read_file(&self, path: &str, buf: &mut [u8], progress: &mut dyn FnMut(usize)) -> Result<usize> {
+    pub fn read_file(
+        &self,
+        path: &str,
+        buf: &mut [u8],
+        progress: &mut dyn FnMut(usize),
+    ) -> Result<usize> {
         let path = CString::new(path)?;
         let mut bytes = 0;
         let mut cb = CallbackData(progress);
@@ -146,7 +151,12 @@ impl<T: UsbContext> Handle<T> {
     }
 
     /// Write a file.
-    pub fn write_file(&self, path: &str, buf: &[u8], progress: &mut dyn FnMut(usize)) -> Result<()> {
+    pub fn write_file(
+        &self,
+        path: &str,
+        buf: &[u8],
+        progress: &mut dyn FnMut(usize),
+    ) -> Result<()> {
         let path = CString::new(path)?;
         let mut cb = CallbackData(progress);
         unsafe {
@@ -184,7 +194,7 @@ impl<T: UsbContext> Handle<T> {
     /// Delete a directory.
     pub fn delete_dir(&self, path: &str) -> Result<()> {
         let path = CString::new(path)?;
-        unsafe { err(nspire_dir_create(self.handle.as_ptr(), path.as_ptr())) }
+        unsafe { err(nspire_dir_delete(self.handle.as_ptr(), path.as_ptr())) }
     }
 
     /// Get the contents of a directory.
