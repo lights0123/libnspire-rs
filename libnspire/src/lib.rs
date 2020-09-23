@@ -2,7 +2,7 @@
 
 use std::ffi::{CStr, CString};
 use std::mem;
-use std::os::raw::c_char;
+use std::os::raw::{c_char, c_void};
 use std::ptr::{null_mut, NonNull};
 
 use rusb::{DeviceHandle, UsbContext};
@@ -17,7 +17,9 @@ use libnspire_sys::{
     nspire_free, nspire_handle, nspire_image, nspire_init, nspire_os_send, nspire_screenshot,
 };
 use std::convert::TryFrom;
+use crate::callback::CallbackData;
 
+mod callback;
 pub mod dir;
 mod error;
 pub mod info;
@@ -34,6 +36,7 @@ pub struct Handle<T: UsbContext> {
     handle: NonNull<nspire_handle>,
     device: DeviceHandle<T>,
 }
+
 
 impl<T: UsbContext> Handle<T> {
     /// Create a new handle to a USB device.
@@ -124,9 +127,10 @@ impl<T: UsbContext> Handle<T> {
     /// Read a file. Returns the number of bytes read. You must pass a buffer
     /// large enough to read the entire file (or smaller if that's all you care
     /// about).
-    pub fn read_file(&self, path: &str, buf: &mut [u8]) -> Result<usize> {
+    pub fn read_file(&self, path: &str, buf: &mut [u8], progress: &mut dyn FnMut(usize)) -> Result<usize> {
         let path = CString::new(path)?;
         let mut bytes = 0;
+        let mut cb = CallbackData(progress);
         unsafe {
             err(nspire_file_read(
                 self.handle.as_ptr(),
@@ -134,31 +138,39 @@ impl<T: UsbContext> Handle<T> {
                 buf.as_mut_ptr() as _,
                 buf.len() as _,
                 &mut bytes,
+                Some(CallbackData::callback),
+                cb.as_mut_void(),
             ))?;
         }
         Ok(bytes as usize)
     }
 
     /// Write a file.
-    pub fn write_file(&self, path: &str, buf: &[u8]) -> Result<()> {
+    pub fn write_file(&self, path: &str, buf: &[u8], progress: &mut dyn FnMut(usize)) -> Result<()> {
         let path = CString::new(path)?;
+        let mut cb = CallbackData(progress);
         unsafe {
             err(nspire_file_write(
                 self.handle.as_ptr(),
                 path.as_ptr(),
                 buf.as_ptr() as _,
                 buf.len() as _,
+                Some(CallbackData::callback),
+                cb.as_mut_void(),
             ))
         }
     }
 
     /// Send an OS update.
-    pub fn send_os(&self, buf: &[u8]) -> Result<()> {
+    pub fn send_os(&self, buf: &[u8], progress: &mut dyn FnMut(usize)) -> Result<()> {
+        let mut cb = CallbackData(progress);
         unsafe {
             err(nspire_os_send(
                 self.handle.as_ptr(),
                 buf.as_ptr() as _,
                 buf.len() as _,
+                Some(CallbackData::callback),
+                cb.as_mut_void(),
             ))
         }
     }
