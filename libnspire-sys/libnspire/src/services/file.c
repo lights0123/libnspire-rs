@@ -22,8 +22,9 @@
 #include "data.h"
 #include "service.h"
 
+typedef void (*nspire_callback)(size_t, void*);
 int nspire_file_write(nspire_handle_t *handle, const char *path,
-		void* data, size_t size) {
+		void* data, size_t size, nspire_callback cb, void *cb_data) {
 	int ret;
 	size_t len;
 	uint8_t buffer[sizeof(struct packet)], *ptr = data;
@@ -59,6 +60,8 @@ int nspire_file_write(nspire_handle_t *handle, const char *path,
 
 		size -= len;
 		ptr += len;
+
+		cb(size, cb_data);
 	}
 
 	if ( (ret = data_read(handle, buffer, sizeof(buffer), NULL)) )
@@ -74,7 +77,7 @@ end:
 }
 
 int nspire_file_read(nspire_handle_t *handle, const char *path,
-		void* data, size_t size, size_t *total_bytes) {
+		void* data, size_t size, size_t *total_bytes, nspire_callback cb, void *cb_data) {
 	int ret;
 	size_t len;
 	uint8_t buffer[packet_max_datasize(handle)], *ptr = data;
@@ -127,6 +130,7 @@ int nspire_file_read(nspire_handle_t *handle, const char *path,
 		ptr += to_copy;
 
 		data_len -= len - 1;
+		cb(size, cb_data);
 	}
 
 	if ( (ret = data_write16(handle, 0xFF00)) )

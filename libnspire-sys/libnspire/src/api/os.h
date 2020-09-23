@@ -21,6 +21,7 @@
 #include <string.h>
 #include "handle.h"
 
-int nspire_os_send(nspire_handle_t *handle, void* data, size_t size);
+typedef void (*nspire_callback)(size_t, void*);
+int nspire_os_send(nspire_handle_t *handle, void* data, size_t size, nspire_callback cb, void *cb_data);
 
 #endif

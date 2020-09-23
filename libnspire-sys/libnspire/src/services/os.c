@@ -23,7 +23,8 @@
 #include "data.h"
 #include "service.h"
 
-int nspire_os_send(nspire_handle_t *handle, void* data, size_t size) {
+typedef void (*nspire_callback)(size_t, void*);
+int nspire_os_send(nspire_handle_t *handle, void* data, size_t size, nspire_callback cb, void *cb_data) {
 	int ret;
 	size_t len;
 	uint8_t buffer[sizeof(struct packet)], *ptr = data;
@@ -69,6 +70,7 @@ int nspire_os_send(nspire_handle_t *handle, void* data, size_t size) {
 
 		size -= len;
 		ptr += len;
+		cb(size, cb_data);
 	}
 
 	while (1) {

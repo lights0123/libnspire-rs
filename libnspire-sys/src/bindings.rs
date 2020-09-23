@@ -516,12 +516,16 @@ extern "C" {
         i: *mut nspire_devinfo,
     ) -> ::std::os::raw::c_int;
 }
+pub type nspire_callback =
+    ::std::option::Option<unsafe extern "C" fn(arg1: size_t, arg2: *mut ::std::os::raw::c_void)>;
 extern "C" {
     pub fn nspire_file_write(
         arg1: *mut nspire_handle_t,
         arg2: *const ::std::os::raw::c_char,
         arg3: *mut ::std::os::raw::c_void,
         arg4: size_t,
+        cb: nspire_callback,
+        cb_data: *mut ::std::os::raw::c_void,
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
@@ -531,6 +535,8 @@ extern "C" {
         data: *mut ::std::os::raw::c_void,
         size: size_t,
         read_bytes: *mut size_t,
+        cb: nspire_callback,
+        cb_data: *mut ::std::os::raw::c_void,
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
@@ -706,6 +712,8 @@ extern "C" {
         handle: *mut nspire_handle_t,
         data: *mut ::std::os::raw::c_void,
         size: size_t,
+        cb: nspire_callback,
+        cb_data: *mut ::std::os::raw::c_void,
     ) -> ::std::os::raw::c_int;
 }
 #[repr(C)]
