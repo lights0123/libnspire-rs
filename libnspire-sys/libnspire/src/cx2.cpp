@@ -34,8 +34,10 @@ int gettimeofday(struct timeval *t, void *timezone) {
 	t->tv_usec=1000*timebuffer.millitm;
 	return 0;
 }
+#define PACK( __Declaration__ ) __pragma( pack(push, 1) ) __Declaration__ __pragma( pack(pop))
 #else
 #include <sys/time.h>
+#define PACK( __Declaration__ ) __Declaration__ __attribute__((__packed__))
 #endif
 
 #include <libusb.h>
@@ -43,6 +45,8 @@ int gettimeofday(struct timeval *t, void *timezone) {
 #include "cx2.h"
 #include "error.h"
 #include "packet.h"
+// Windows...
+#undef min
 
 enum Address {
 	AddrAll		= 0xFF,
@@ -63,7 +67,7 @@ enum Service {
 };
 
 // Big endian!
-struct NNSEMessage {
+PACK(struct NNSEMessage {
 	uint8_t 	misc;		// Unused?
 	uint8_t		service;	// Service number. If bit 7 set, an ACK
 	uint8_t     src;		// Address of the source
@@ -75,36 +79,36 @@ struct NNSEMessage {
 	uint16_t    csum;		// Checksum. Inverse of the 16bit modular sum with carry added.
 
 	uint8_t     data[0];
-} __attribute__((packed));
+});
 
-struct NNSEMessage_AddrReq {
+PACK(struct NNSEMessage_AddrReq {
 	NNSEMessage hdr;
 	uint8_t     code; // 00
 	uint8_t     clientID[64];
-} __attribute__((packed));
+});
 
-struct NNSEMessage_AddrResp {
+PACK(struct NNSEMessage_AddrResp {
 	NNSEMessage hdr;
 	uint8_t     addr;
-} __attribute__((packed));
+});
 
-struct NNSEMessage_UnkResp {
+PACK(struct NNSEMessage_UnkResp {
 	NNSEMessage hdr;
 	uint8_t     noidea[2]; // 80 03
-} __attribute__((packed));
+});
 
-struct NNSEMessage_TimeReq {
+PACK(struct NNSEMessage_TimeReq {
 	NNSEMessage hdr;
 	uint8_t     code;
-} __attribute__((packed));
+});
 
-struct NNSEMessage_TimeResp {
+PACK(struct NNSEMessage_TimeResp {
 	NNSEMessage hdr;
 	uint8_t     noidea; // 80
 	uint32_t    sec;
 	uint64_t    frac;
 	uint32_t    frac2;
-} __attribute__((packed));
+});
 
 #ifdef DEBUG
 static void dumpPacket(const NNSEMessage *message)
