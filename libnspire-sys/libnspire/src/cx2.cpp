@@ -77,8 +77,6 @@ PACK(struct NNSEMessage {
 	uint16_t    length;		// Length of the packet, including this header
 	uint16_t    seqno;		// Sequence number. Increases by one for every non-ACK packet.
 	uint16_t    csum;		// Checksum. Inverse of the 16bit modular sum with carry added.
-
-	uint8_t     data[0];
 });
 
 PACK(struct NNSEMessage_AddrReq {
