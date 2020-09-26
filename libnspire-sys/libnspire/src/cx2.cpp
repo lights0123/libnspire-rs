@@ -110,6 +110,10 @@ PACK(struct NNSEMessage_TimeResp {
 	uint32_t    frac2;
 });
 
+static uint8_t *getPacketData(NNSEMessage *c) {
+	return ((uint8_t *)c) + sizeof(NNSEMessage);
+}
+
 #ifdef DEBUG
 static void dumpPacket(const NNSEMessage *message)
 {
@@ -125,7 +129,7 @@ static void dumpPacket(const NNSEMessage *message)
 
 	auto datalen = ntohs(message->length) - sizeof(NNSEMessage);
 	for(int i = 0; i < datalen; ++i)
-		printf("%02x ", message->data[i]);
+		printf("%02x ", getPacketData(message)[i]);
 
 	printf("\n");
 }
@@ -334,7 +338,7 @@ static void handlePacket(struct nspire_handle *nsp_handle, NNSEMessage *message,
 		}
 		case UnknownService:
 		{
-			if(ntohs(message->length) != sizeof(NNSEMessage) + 1 || message->data[0] != 0x01)
+			if(ntohs(message->length) != sizeof(NNSEMessage) + 1 || getPacketData(message)[0] != 0x01)
 				goto drop;
 
 #ifdef DEBUG
@@ -354,7 +358,7 @@ static void handlePacket(struct nspire_handle *nsp_handle, NNSEMessage *message,
 		case StreamService:
 		{
 			if(streamdata)
-				*streamdata = message->data;
+				*streamdata = getPacketData(message);
 			if(streamsize)
 				*streamsize = ntohs(message->length) - sizeof(NNSEMessage);
 
@@ -408,7 +412,7 @@ int packet_send_cx2(struct nspire_handle *nsp_handle, char *data, int size)
 	msg->length = htons(len);
 	msg->seqno = htons(nextSeqno());
 
-	memcpy(msg->data, data, size);
+	memcpy(getPacketData(msg), data, size);
 
 	int ret = -NSPIRE_ERR_SUCCESS;
 	if(!writePacket(handle, msg))
