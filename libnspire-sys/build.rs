@@ -30,6 +30,7 @@ fn main() {
     //     .whitelist_var("nspire.*")
     //     .whitelist_type("NSPIRE.*")
     //     .whitelist_var("NSPIRE.*")
+    //     .size_t_is_usize(true)
     //     // Finish the builder and generate the bindings.
     //     .generate()
     //     // Unwrap the Result and panic on failure.

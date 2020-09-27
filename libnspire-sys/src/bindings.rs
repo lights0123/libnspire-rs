@@ -33,7 +33,6 @@ impl<T> ::std::fmt::Debug for __IncompleteArrayField<T> {
 pub type __uint8_t = ::std::os::raw::c_uchar;
 pub type __uint16_t = ::std::os::raw::c_ushort;
 pub type __uint64_t = ::std::os::raw::c_ulong;
-pub type size_t = ::std::os::raw::c_ulong;
 extern "C" {
     pub fn free(__ptr: *mut ::std::os::raw::c_void);
 }
@@ -517,13 +516,13 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 pub type nspire_callback =
-    ::std::option::Option<unsafe extern "C" fn(arg1: size_t, arg2: *mut ::std::os::raw::c_void)>;
+    ::std::option::Option<unsafe extern "C" fn(arg1: usize, arg2: *mut ::std::os::raw::c_void)>;
 extern "C" {
     pub fn nspire_file_write(
         arg1: *mut nspire_handle_t,
         arg2: *const ::std::os::raw::c_char,
         arg3: *mut ::std::os::raw::c_void,
-        arg4: size_t,
+        arg4: usize,
         cb: nspire_callback,
         cb_data: *mut ::std::os::raw::c_void,
     ) -> ::std::os::raw::c_int;
@@ -533,8 +532,8 @@ extern "C" {
         handle: *mut nspire_handle_t,
         path: *const ::std::os::raw::c_char,
         data: *mut ::std::os::raw::c_void,
-        size: size_t,
-        read_bytes: *mut size_t,
+        size: usize,
+        read_bytes: *mut usize,
         cb: nspire_callback,
         cb_data: *mut ::std::os::raw::c_void,
     ) -> ::std::os::raw::c_int;
@@ -566,8 +565,8 @@ pub type nspire_dir_type = ::std::os::raw::c_uint;
 #[derive(Copy, Clone)]
 pub struct nspire_dir_item {
     pub name: [::std::os::raw::c_char; 240usize],
-    pub size: ::std::os::raw::c_ulong,
-    pub date: ::std::os::raw::c_ulong,
+    pub size: u64,
+    pub date: u64,
     pub type_: nspire_dir_type,
 }
 #[test]
@@ -625,7 +624,7 @@ fn bindgen_test_layout_nspire_dir_item() {
 }
 #[repr(C)]
 pub struct nspire_dir_info {
-    pub num: ::std::os::raw::c_ulong,
+    pub num: u64,
     pub items: __IncompleteArrayField<nspire_dir_item>,
 }
 #[test]
@@ -711,7 +710,7 @@ extern "C" {
     pub fn nspire_os_send(
         handle: *mut nspire_handle_t,
         data: *mut ::std::os::raw::c_void,
-        size: size_t,
+        size: usize,
         cb: nspire_callback,
         cb_data: *mut ::std::os::raw::c_void,
     ) -> ::std::os::raw::c_int;
