@@ -18,10 +18,12 @@
 #ifndef NSP_HANDLE_H
 #define NSP_HANDLE_H
 
+#include <stdbool.h>
+
 typedef struct nspire_handle nspire_handle_t;
 typedef struct libusb_device_handle libusb_device_handle;
 
-int nspire_init(nspire_handle_t **ptr, libusb_device_handle *dev);
+int nspire_init(nspire_handle_t **ptr, libusb_device_handle *dev, bool is_cx2);
 void nspire_free(nspire_handle_t *ptr);
 
 #endif

@@ -51,6 +51,7 @@ extern "C" {
     pub fn nspire_init(
         ptr: *mut *mut nspire_handle_t,
         dev: *mut libusb_device_handle,
+        is_cx2: bool,
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {

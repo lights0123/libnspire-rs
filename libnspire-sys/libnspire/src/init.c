@@ -22,7 +22,7 @@
 #include "error.h"
 #include "usb.h"
 
-int nspire_init(nspire_handle_t **ptr, libusb_device_handle *dev) {
+int nspire_init(nspire_handle_t **ptr, libusb_device_handle *dev, bool is_cx2) {
 	int ret;
 	struct packet p;
 	nspire_handle_t *h = malloc(sizeof(*h));
@@ -33,11 +33,9 @@ int nspire_init(nspire_handle_t **ptr, libusb_device_handle *dev) {
 	if ( (ret = usb_init()) )
 		goto error;
 
-	h->is_cx2 = false;
+	h->is_cx2 = is_cx2;
 	if ( (ret = usb_get_device(&h->device, dev)) ) {
-		h->is_cx2 = true;
-		if ( (ret = usb_get_device(&h->device, dev)) )
-			goto error;
+		goto error;
 	}
 
 	h->host_addr = 0x6400;
