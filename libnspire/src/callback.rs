@@ -1,4 +1,4 @@
-use std::os::raw::{c_void};
+use std::os::raw::c_void;
 
 pub struct CallbackData<'a>(pub &'a mut dyn FnMut(usize));
 

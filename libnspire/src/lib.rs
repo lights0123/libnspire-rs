@@ -38,11 +38,15 @@ pub struct Handle<T: UsbContext> {
     device: DeviceHandle<T>,
 }
 
+fn is_cx_ii<T: UsbContext>(device: &DeviceHandle<T>) -> Result<bool> {
+    Ok(device.device().device_descriptor()?.product_id() == PID_CX2)
+}
+
 impl<T: UsbContext> Handle<T> {
     /// Create a new handle to a USB device.
     pub fn new(device: DeviceHandle<T>) -> Result<Self> {
         let mut handle: *mut nspire_handle = null_mut();
-        err(unsafe { nspire_init(&mut handle, device.as_raw() as _) })?;
+        err(unsafe { nspire_init(&mut handle, device.as_raw() as _, is_cx_ii(&device)?) })?;
         Ok(Handle {
             handle: NonNull::new(handle).ok_or(Error::NoDevice)?,
             device,
@@ -51,7 +55,7 @@ impl<T: UsbContext> Handle<T> {
 
     /// Whether this device is a CX II, CAS or non-CAS.
     pub fn is_cx_ii(&self) -> Result<bool> {
-        Ok(self.device.device().device_descriptor()?.product_id() == PID_CX2)
+        is_cx_ii(&self.device)
     }
 
     pub fn info(&self) -> Result<Info> {
