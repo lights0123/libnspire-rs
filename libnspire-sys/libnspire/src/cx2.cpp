@@ -108,7 +108,7 @@ PACK(struct NNSEMessage_TimeResp {
 	uint32_t    frac2;
 });
 
-static uint8_t *getPacketData(NNSEMessage *c) {
+static uint8_t *getPacketData(const NNSEMessage *c) {
 	return ((uint8_t *)c) + sizeof(NNSEMessage);
 }
 
@@ -301,8 +301,8 @@ static void handlePacket(struct nspire_handle *nsp_handle, NNSEMessage *message,
 				printf("Failed to send message\n");
 
 			NNSEMessage_AddrResp resp2 = {};
-			resp.hdr.service = message->service;
-			resp.addr = 0x80; // No idea
+			resp2.hdr.service = message->service;
+			resp2.addr = 0x80; // No idea
 
 			if(!sendMessage(handle, resp2))
 				printf("Failed to send message\n");

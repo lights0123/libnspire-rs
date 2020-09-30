@@ -330,18 +330,18 @@ int data_build(const char *format, void *buffer,
 			char *in = va_arg(ap, char *);
 			size_t strl = strlen(in);
 
-			if (len <= strl || len <= 8) {
+			if (len <= strl || len <= 9) {
 				ret = -NSPIRE_ERR_INVALID;
 				goto end;
 			}
 
-			/* Strings are padded with zeros until len (including the final 0) >= 8 */
+			/* Strings are padded with zeros until len (including the final 0) >= 9 */
 			/* Take this into account */
-			memset(ptr, 0, 8);
+			memset(ptr, 0, 9);
 			strncpy((char*)ptr, in, len);
 
-			if (strl < 7) {
-				ptr += 7;
+			if (strl < 8) {
+				ptr += 8;
 			} else {
 				ptr += strl;
 			}
