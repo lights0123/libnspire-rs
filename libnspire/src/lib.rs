@@ -154,7 +154,7 @@ impl<T: UsbContext> Handle<T> {
                 cb.as_mut_void(),
             ))?;
         }
-        Ok(bytes as usize)
+        Ok(bytes)
     }
 
     /// Write a file.

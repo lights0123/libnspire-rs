@@ -4,7 +4,6 @@ fn main() {
     let files = globwalk::GlobWalkerBuilder::from_patterns("libnspire/src", &["*.{c,cpp}"])
         .build()
         .unwrap()
-        .into_iter()
         .filter_map(Result::ok)
         .map(DirEntry::into_path)
         .inspect(|path| println!("cargo:rerun-if-changed={}", path.display()));
