@@ -24,45 +24,46 @@
 #include "service.h"
 #include "screenshot.h"
 
-struct rle {
-	signed char len;
-	unsigned char byte;
-};
-
-static void rle_decode(const void *in, void *_out,
+static void rle_decode(const uint8_t bpp, uint8_t *in, uint8_t *out,
 		size_t in_size, size_t out_size) {
-	size_t len;
-	unsigned char *out = _out;
-	const struct rle *ptr = in;
+	const size_t rle_size = (bpp * 2) / 8; // 2px
 
 	while (in_size > 1 && out_size) {
-		if (ptr->len < 0) {
-			len = -(ptr->len) + 1;
+		int len = (int8_t)*in++;
+		in_size--;
+		if (len < 0) {
+			len = (-len + 1) * rle_size;
 			len = len < out_size ? len : out_size;
 			len = len < in_size ? len : in_size;
 
-			memcpy(out, &ptr->byte, len);
+			memcpy(out, in, len);
 
-			in_size -= (1 + (len));
-			ptr = (void*)((unsigned char*)ptr + (1 + (len)));
+			in_size -= len;
+			in += len;
+			out_size -= len;
+			out += len;
 		} else {
-			len = ptr->len + 1;
-			len = len < out_size ? len : out_size;
-			memset(out, ptr->byte, len);
+			if (in_size < rle_size)
+				return;
 
-			in_size -= sizeof(struct rle);
-			ptr++;
+			for (int i = 0; i < len + 1; ++i) {
+				if (out_size < rle_size)
+					break;
+
+				memcpy(out, in, rle_size);
+				out_size -= rle_size;
+				out += rle_size;
+			}
+			in_size -= rle_size;
+			in += rle_size;
 		}
-
-		out_size -= len;
-		out += len;
 	}
 }
 
 int nspire_screenshot(nspire_handle_t *handle, struct nspire_image **ptr) {
 	int ret;
 	size_t len, in_len, out_len;
-	uint8_t buffer[254], bbp, *tmp = NULL, *tmp_ptr = NULL;
+	uint8_t buffer[packet_max_datasize(handle)], bpp, *tmp = NULL, *tmp_ptr = NULL;
 	uint16_t width, height;
 	uint32_t size;
 	struct nspire_image *i;
@@ -78,7 +79,7 @@ int nspire_screenshot(nspire_handle_t *handle, struct nspire_image **ptr) {
 		goto end;
 
 	if ( (ret = data_scan("bwhhhhbb", buffer, sizeof(buffer),
-			NULL, &size, NULL, NULL, &width, &height, &bbp, NULL)) )
+			NULL, &size, NULL, NULL, &width, &height, &bpp, NULL)) )
 		goto end;
 
 	tmp_ptr = tmp = malloc(size);
@@ -88,7 +89,7 @@ int nspire_screenshot(nspire_handle_t *handle, struct nspire_image **ptr) {
 	}
 
 	in_len = size;
-	out_len = (width * height * bbp) / 8;
+	out_len = (width * height * bpp) / 8;
 
 	i = malloc(sizeof(*i) + out_len);
 	if (!i) {
@@ -98,19 +99,21 @@ int nspire_screenshot(nspire_handle_t *handle, struct nspire_image **ptr) {
 
 	i->width = width;
 	i->height = height;
-	i->bbp = bbp;
+	i->bpp = bpp;
+
+	const size_t maxsize = packet_max_datasize(handle) - 1;
 
 	while (size) {
 		if ( (ret = data_read(handle, buffer, sizeof(buffer), NULL)) )
 			goto error_free;
 
-		len = 253 < size ? 253 : size;
+		len = maxsize < size ? maxsize : size;
 		memcpy(tmp_ptr, buffer + 1, len);
 		tmp_ptr += len;
 		size -= len;
 	}
 
-	rle_decode(tmp, i->data, in_len, out_len);
+	rle_decode(bpp, tmp, i->data, in_len, out_len);
 	*ptr = i;
 	ret = NSPIRE_ERR_SUCCESS;
 	goto end;

@@ -73,14 +73,14 @@ impl<T: UsbContext> Handle<T> {
             err(nspire_screenshot(self.handle.as_ptr(), &mut image))?;
             let width = (*image).width;
             let height = (*image).height;
-            let bbp = (*image).bbp;
-            let len = (width as u32 * height as u32 * bbp as u32) / 8;
+            let bpp = (*image).bpp;
+            let len = (width as u32 * height as u32 * bpp as u32) / 8;
             let data = (*image).data.as_slice(len as usize).into();
             free(image as _);
             Ok(Image {
                 width,
                 height,
-                bpp: bbp,
+                bpp,
                 data,
             })
         }
