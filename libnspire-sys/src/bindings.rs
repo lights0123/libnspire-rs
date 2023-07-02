@@ -721,7 +721,7 @@ extern "C" {
 pub struct nspire_image {
     pub width: u16,
     pub height: u16,
-    pub bbp: u8,
+    pub bpp: u8,
     pub data: __IncompleteArrayField<::std::os::raw::c_uchar>,
 }
 #[test]
@@ -757,13 +757,13 @@ fn bindgen_test_layout_nspire_image() {
         )
     );
     assert_eq!(
-        unsafe { &(*(::std::ptr::null::<nspire_image>())).bbp as *const _ as usize },
+        unsafe { &(*(::std::ptr::null::<nspire_image>())).bpp as *const _ as usize },
         4usize,
         concat!(
             "Offset of field: ",
             stringify!(nspire_image),
             "::",
-            stringify!(bbp)
+            stringify!(bpp)
         )
     );
     assert_eq!(

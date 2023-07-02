@@ -20,6 +20,9 @@ use libnspire_sys::{
 };
 use std::convert::TryFrom;
 
+#[cfg(feature = "image")]
+use image::{DynamicImage, ImageBuffer};
+
 mod callback;
 pub mod dir;
 mod error;
@@ -73,14 +76,14 @@ impl<T: UsbContext> Handle<T> {
             err(nspire_screenshot(self.handle.as_ptr(), &mut image))?;
             let width = (*image).width;
             let height = (*image).height;
-            let bbp = (*image).bbp;
-            let len = (width as u32 * height as u32 * bbp as u32) / 8;
+            let bpp = (*image).bpp;
+            let len = (width as u32 * height as u32 * bpp as u32) / 8;
             let data = (*image).data.as_slice(len as usize).into();
             free(image as _);
             Ok(Image {
                 width,
                 height,
-                bpp: bbp,
+                bpp,
                 data,
             })
         }
@@ -151,7 +154,7 @@ impl<T: UsbContext> Handle<T> {
                 cb.as_mut_void(),
             ))?;
         }
-        Ok(bytes as usize)
+        Ok(bytes)
     }
 
     /// Write a file.
@@ -242,40 +245,54 @@ pub struct Image {
     pub bpp: u8,
     pub data: Vec<u8>,
 }
-const MAX_R: u8 = ((1usize << 5) - 1) as u8;
-const MAX_G: u8 = ((1usize << 6) - 1) as u8;
-const MAX_B: u8 = ((1usize << 5) - 1) as u8;
+
+const B_BITS: usize = 5;
+const G_BITS: usize = 6;
+const R_BITS: usize = 5;
+
+const B_OFFSET: usize = 0;
+const G_OFFSET: usize = B_OFFSET + B_BITS;
+const R_OFFSET: usize = G_OFFSET + G_BITS;
+
+const _: () = {
+    if R_OFFSET + R_BITS != 16 {
+        panic!("total length must be 16");
+    }
+};
+
+const MAX_B: u8 = (1 << B_BITS) - 1;
+const MAX_G: u8 = (1 << G_BITS) - 1;
+const MAX_R: u8 = (1 << R_BITS) - 1;
+
 /// Convert color channel values from one bit depth to another.
 const fn convert_channel(value: u8, from_max: u8) -> u8 {
-    ((value as u16 * 255u16 + from_max as u16 / 2) / from_max as u16) as u8
+    ((value as u16 * 255 + from_max as u16 / 2) / from_max as u16) as u8
 }
 
 #[cfg(feature = "image")]
-impl TryFrom<Image> for image::DynamicImage {
+impl TryFrom<Image> for DynamicImage {
     type Error = Error;
 
     /// Currently broken.
     fn try_from(image: Image) -> Result<Self> {
-        use image::ImageBuffer;
         match image.bpp {
-            8 => Ok(image::DynamicImage::ImageLuma8(
+            8 => Ok(DynamicImage::ImageLuma8(
                 ImageBuffer::from_vec(image.width as u32, image.height as u32, image.data).unwrap(),
             )),
             16 => {
-                let data: Vec<u8> = image
+                let data: Vec<_> = image
                     .data
-                    .chunks(2)
+                    .chunks_exact(2)
                     .flat_map(|d| {
-                        let color = u16::from_ne_bytes([d[0], d[1]]);
+                        let color = u16::from_le_bytes([d[0], d[1]]);
                         ArrayIterator::new([
-                            convert_channel(color as u8 & MAX_R, MAX_R),
-                            convert_channel((color >> 5) as u8 & MAX_G, MAX_G),
-                            convert_channel((color >> 11) as u8 & MAX_B, MAX_B),
+                            convert_channel((color >> R_OFFSET) as u8 & MAX_R, MAX_R),
+                            convert_channel((color >> G_OFFSET) as u8 & MAX_G, MAX_G),
+                            convert_channel((color >> B_OFFSET) as u8 & MAX_B, MAX_B),
                         ])
                     })
                     .collect();
-                dbg!(data.len());
-                Ok(image::DynamicImage::ImageRgb8(
+                Ok(DynamicImage::ImageRgb8(
                     ImageBuffer::from_vec(image.width as u32, image.height as u32, data).unwrap(),
                 ))
             }

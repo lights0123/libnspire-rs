@@ -23,7 +23,7 @@
 
 struct nspire_image {
 	uint16_t width, height;
-	uint8_t bbp;
+	uint8_t bpp;
 
 	unsigned char data[];
 };
